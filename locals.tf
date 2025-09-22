@@ -1,10 +1,10 @@
 locals {
   # Base names
   base_name = "tf-task"
-  
-  # Network interface names list
+
+  # Network interface names list (for for_each iteration)
   nic_names_list = values(var.nic_names)
-  
+
   # Network security rules
   nsg_rules = [
     {
@@ -41,7 +41,7 @@ locals {
       destination_address_prefix = "*"
     }
   ]
-  
+
   # Common tags
   common_tags = {
     Environment = "Production"

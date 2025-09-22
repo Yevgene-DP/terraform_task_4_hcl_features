@@ -14,9 +14,9 @@ resource "azurerm_network_interface" "vm_instances" {
   }
 }
 
-# Network interfaces using for_each
+# Network interfaces using for_each with local.nic_names_list
 resource "azurerm_network_interface" "nic_instances" {
-  for_each            = var.nic_names
+  for_each            = toset(local.nic_names_list) # Fixed: using local.nic_names_list
   name                = each.value
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
@@ -26,7 +26,7 @@ resource "azurerm_network_interface" "nic_instances" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.main.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.nic_instances[each.key].id
+    public_ip_address_id          = azurerm_public_ip.nic_instances[index(local.nic_names_list, each.value)].id
   }
 }
 
@@ -38,7 +38,7 @@ resource "azurerm_network_interface_security_group_association" "vm_instances" {
 }
 
 resource "azurerm_network_interface_security_group_association" "nic_instances" {
-  for_each                  = var.nic_names
-  network_interface_id      = azurerm_network_interface.nic_instances[each.key].id
+  for_each                  = toset(local.nic_names_list) # Fixed: using local.nic_names_list
+  network_interface_id      = azurerm_network_interface.nic_instances[each.value].id
   network_security_group_id = azurerm_network_security_group.main.id
 }

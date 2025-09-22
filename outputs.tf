@@ -1,7 +1,10 @@
-# Output with uppercase VM name transformation
+# Output with uppercase VM name transformation (includes both count and for_each VMs)
 output "vm_names_uppercase" {
   description = "VM names converted to uppercase"
-  value       = [for vm in azurerm_linux_virtual_machine.main : upper(vm.name)]
+  value = concat(
+    [for vm in azurerm_linux_virtual_machine.main : upper(vm.name)],
+    [for vm in azurerm_linux_virtual_machine.for_each_vms : upper(vm.name)]
+  )
 }
 
 # Output combining multiple tag values into one string
@@ -13,7 +16,7 @@ output "combined_tags" {
 # Output using for loop to get all VM IDs (as a simple list)
 output "all_vm_ids" {
   description = "List of all VM resource IDs"
-  value       = concat(
+  value = concat(
     [for vm in azurerm_linux_virtual_machine.main : vm.id],
     [for vm in azurerm_linux_virtual_machine.for_each_vms : vm.id]
   )
@@ -29,5 +32,5 @@ output "vm_public_ips" {
 # Output network interface information
 output "network_interfaces" {
   description = "Network interface details"
-  value       = { for k, v in azurerm_network_interface.nic_instances : k => v.name }
+  value       = { for nic in azurerm_network_interface.nic_instances : nic.key => nic.value.name }
 }
