@@ -1,42 +1,33 @@
-# Ім'я віртуальної машини у верхньому регістрі
+# Output with uppercase VM name transformation
 output "vm_names_uppercase" {
-  description = "Імена віртуальних машин у верхньому регістрі"
-  value       = [for vm in azurerm_virtual_machine.main : upper(vm.name)]
+  description = "VM names converted to uppercase"
+  value       = [for vm in azurerm_linux_virtual_machine.main : upper(vm.name)]
 }
 
-# Об'єднання значень тегів в один рядок
+# Output combining multiple tag values into one string
 output "combined_tags" {
-  description = "Об'єднані значення тегів"
-  value       = join(", ", [for k, v in local.common_tags : "${k}=${v}"])
+  description = "Combined tag values as a single string"
+  value       = join(", ", [for key, value in local.common_tags : "${key}:${value}"])
 }
 
-# ID всіх віртуальних машин з використанням циклу for
+# Output using for loop to get all VM IDs (as a simple list)
 output "all_vm_ids" {
-  description = "ID всіх віртуальних машин"
-  value       = { for i, vm in azurerm_virtual_machine.main : vm.name => vm.id }
+  description = "List of all VM resource IDs"
+  value       = concat(
+    [for vm in azurerm_linux_virtual_machine.main : vm.id],
+    [for vm in azurerm_linux_virtual_machine.for_each_vms : vm.id]
+  )
 }
 
-# Публічні IP-адреси всіх віртуальних машин
-output "public_ip_addresses" {
-  description = "Публічні IP-адреси віртуальних машин"
-  value       = { for i, pip in azurerm_public_ip.main : azurerm_virtual_machine.main[i].name => pip.ip_address }
+# Output public IP addresses
+output "vm_public_ips" {
+  description = "Public IP addresses of VM instances"
+  value       = { for i, ip in azurerm_public_ip.vm_instances : "vm-${i}" => ip.ip_address }
+  sensitive   = false
 }
 
-# Інформація про підключення SSH
-output "ssh_connections" {
-  description = "SSH connection strings"
-  value       = { for i, vm in azurerm_virtual_machine.main : vm.name => "ssh ${var.admin_username}@${azurerm_public_ip.main[i].ip_address}" }
-  sensitive   = true
-}
-
-# URL для доступу до Nginx
-output "nginx_urls" {
-  description = "URL для доступу до Nginx"
-  value       = { for i, vm in azurerm_virtual_machine.main : vm.name => "http://${azurerm_public_ip.main[i].ip_address}" }
-}
-
-# Статус всіх віртуальних машин
-output "vm_statuses" {
-  description = "Статуси віртуальних машин"
-  value       = { for vm in azurerm_virtual_machine.main : vm.name => vm.id } # Замініть на реальний статус, якщо доступний
+# Output network interface information
+output "network_interfaces" {
+  description = "Network interface details"
+  value       = { for k, v in azurerm_network_interface.nic_instances : k => v.name }
 }

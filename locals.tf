@@ -1,16 +1,15 @@
 locals {
-  # Список імен мережевих інтерфейсів для for_each
-  nic_names = {
-    "nic-1" = "${var.resource_group_name}-nic-1"
-    "nic-2" = "${var.resource_group_name}-nic-2"
-    "nic-3" = "${var.resource_group_name}-nic-3"
-  }
-
-  # Правила мережевої безпеки
+  # Base names
+  base_name = "tf-task"
+  
+  # Network interface names list
+  nic_names_list = values(var.nic_names)
+  
+  # Network security rules
   nsg_rules = [
     {
       name                       = "SSH"
-      priority                   = 100
+      priority                   = 1001
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -21,7 +20,7 @@ locals {
     },
     {
       name                       = "HTTP"
-      priority                   = 110
+      priority                   = 1002
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -32,7 +31,7 @@ locals {
     },
     {
       name                       = "HTTPS"
-      priority                   = 120
+      priority                   = 1003
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -42,14 +41,11 @@ locals {
       destination_address_prefix = "*"
     }
   ]
-
-  # Теги для ресурсів
+  
+  # Common tags
   common_tags = {
-    Environment = var.environment
-    CreatedBy   = "Terraform"
-    Project     = "Multi-VM Deployment"
+    Environment = "Production"
+    Project     = "TerraformTask"
+    Owner       = "DevOps"
   }
-
-  # Імена віртуальних машин з використанням count
-  vm_names = [for i in range(var.vm_count) : "vm-${i + 1}"]
 }

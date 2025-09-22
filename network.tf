@@ -1,35 +1,49 @@
-# Група ресурсів
-resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = local.common_tags
-}
-
-# Віртуальна мережа
+# Virtual Network
 resource "azurerm_virtual_network" "main" {
-  name                = "${var.resource_group_name}-vnet"
+  name                = "${local.base_name}-vnet"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   tags                = local.common_tags
 }
 
-# Підмережа
+# Subnet
 resource "azurerm_subnet" "main" {
-  name                 = "internal"
+  name                 = "${local.base_name}-subnet"
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
+  address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Група безпеки мережі з динамічними блоками
+# Public IPs for each VM instance
+resource "azurerm_public_ip" "vm_instances" {
+  count               = var.vm_count
+  name                = "${local.base_name}-pip-${count.index}"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  allocation_method   = "Dynamic"
+  sku                 = "Basic"
+  tags                = local.common_tags
+}
+
+# Public IPs for each network interface (for_each)
+resource "azurerm_public_ip" "nic_instances" {
+  for_each            = var.nic_names
+  name                = "${local.base_name}-pip-${each.key}"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  allocation_method   = "Dynamic"
+  sku                 = "Basic"
+  tags                = local.common_tags
+}
+
+# Network Security Group with dynamic blocks
 resource "azurerm_network_security_group" "main" {
-  name                = "${var.resource_group_name}-nsg"
+  name                = "${local.base_name}-nsg"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   tags                = local.common_tags
 
-  # Динамічні блоки для правил безпеки
   dynamic "security_rule" {
     for_each = local.nsg_rules
     content {
@@ -44,37 +58,4 @@ resource "azurerm_network_security_group" "main" {
       destination_address_prefix = security_rule.value.destination_address_prefix
     }
   }
-}
-
-# Публічні IP-адреси з використанням count
-resource "azurerm_public_ip" "main" {
-  count               = var.vm_count
-  name                = "${var.resource_group_name}-pip-${count.index + 1}"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  tags                = local.common_tags
-}
-
-# Мережеві інтерфейси з використанням for_each
-resource "azurerm_network_interface" "main" {
-  for_each            = local.nic_names
-  name                = each.value
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  tags                = local.common_tags
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.main.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.main[each.key == "nic-1" ? 0 : 1].id
-  }
-}
-
-# Прив'язка NSG до підмережі
-resource "azurerm_subnet_network_security_group_association" "main" {
-  subnet_id                 = azurerm_subnet.main.id
-  network_security_group_id = azurerm_network_security_group.main.id
 }

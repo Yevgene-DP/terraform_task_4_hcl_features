@@ -1,6 +1,11 @@
-resource_group_name = "my-vm-resources"
-location            = "West Europe"
-vm_count            = 2
-admin_username      = "adminuser"
-admin_password      = "SecurePassword123!"
-environment         = "dev"
+resource_group_name = "rg-terraform-task-4"
+location          = "West Europe"
+admin_username    = "adminuser"
+admin_password    = "SecurePassword123!"
+vm_count          = 2
+
+nic_names = {
+  nic1 = "web-server-nic"
+  nic2 = "app-server-nic" 
+  nic3 = "db-server-nic"
+}

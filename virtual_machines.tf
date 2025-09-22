@@ -1,60 +1,66 @@
-# Віртуальні машини з використанням count
-resource "azurerm_virtual_machine" "main" {
+# Virtual machines using count
+resource "azurerm_linux_virtual_machine" "main" {
   count                 = var.vm_count
-  name                  = "${var.resource_group_name}-${local.vm_names[count.index]}"
+  name                  = "${local.base_name}-vm-${count.index}"
   location              = azurerm_resource_group.main.location
   resource_group_name   = azurerm_resource_group.main.name
-  network_interface_ids = [azurerm_network_interface.main[count.index == 0 ? "nic-1" : "nic-2"].id]
-  vm_size               = "Standard_B1s"
-  tags                  = merge(local.common_tags, { 
-    VMName = local.vm_names[count.index],
-    Index  = count.index 
-  })
+  size                  = "Standard_B1s"
+  admin_username        = var.admin_username
+  admin_password        = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids = [azurerm_network_interface.vm_instances[count.index].id]
+  tags                  = merge(local.common_tags, { Instance = count.index })
 
-  storage_image_reference {
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts"
     version   = "latest"
   }
 
-  storage_os_disk {
-    name              = "osdisk-${count.index + 1}"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Standard_LRS"
-  }
-
-  os_profile {
-    computer_name  = "vm-${count.index + 1}"
-    admin_username = var.admin_username
-    admin_password = var.admin_password
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
-
-  # Блок життєвого циклу для запобігання випадковому видаленню
+  # Lifecycle block to prevent accidental deletion
   lifecycle {
-    prevent_destroy = false
-    # ignore_changes = [tags] # Розкоментуйте, якщо потрібно ігнорувати зміни тегів
+    prevent_destroy = true  # Changed from false to true
+    ignore_changes = [
+      tags
+    ]
+  }
+}
+
+# Virtual machines using for_each (attached to NICs created with for_each)
+resource "azurerm_linux_virtual_machine" "for_each_vms" {
+  for_each              = var.nic_names
+  name                  = "${local.base_name}-vm-${each.key}"
+  location              = azurerm_resource_group.main.location
+  resource_group_name   = azurerm_resource_group.main.name
+  size                  = "Standard_B1s"
+  admin_username        = var.admin_username
+  admin_password        = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids = [azurerm_network_interface.nic_instances[each.key].id]
+  tags                  = merge(local.common_tags, { Instance = each.key })
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
 
-  # Provisioner для встановлення Nginx
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt-get update",
-      "sudo apt-get install -y nginx",
-      "sudo systemctl start nginx",
-      "sudo systemctl enable nginx"
-    ]
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
 
-    connection {
-      type     = "ssh"
-      user     = var.admin_username
-      password = var.admin_password
-      host     = azurerm_public_ip.main[count.index].ip_address
-    }
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      tags
+    ]
   }
 }

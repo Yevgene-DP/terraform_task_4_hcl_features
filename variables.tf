@@ -1,37 +1,41 @@
 variable "resource_group_name" {
-  description = "Назва групи ресурсів"
+  description = "Name of the resource group"
   type        = string
-  default     = "tf-vm-resources"
+  default     = "rg-terraform-task"
 }
 
 variable "location" {
-  description = "Регіон Azure"
+  description = "Azure region"
   type        = string
   default     = "West Europe"
 }
 
-variable "vm_count" {
-  description = "Кількість віртуальних машин для створення"
-  type        = number
-  default     = 2
-}
-
 variable "admin_username" {
-  description = "Ім'я адміністратора"
+  description = "Admin username for VMs"
   type        = string
-  sensitive   = true
   default     = "adminuser"
+  sensitive   = true
 }
 
 variable "admin_password" {
-  description = "Пароль адміністратора"
+  description = "Admin password for VMs"
   type        = string
   sensitive   = true
   default     = "Password1234!"
 }
 
-variable "environment" {
-  description = "Середовище (dev, staging, prod)"
-  type        = string
-  default     = "dev"
+variable "vm_count" {
+  description = "Number of VM instances to create"
+  type        = number
+  default     = 2
+}
+
+variable "nic_names" {
+  description = "Map of network interface names"
+  type        = map(string)
+  default = {
+    nic1 = "vm-nic-1"
+    nic2 = "vm-nic-2"
+    nic3 = "vm-nic-3"
+  }
 }
